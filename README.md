@@ -133,7 +133,9 @@ Filesystem View:                Membrane Computer View:
 ### Documentation
 
 - [Rooted Shell Namespaces](docs/cognitive-architecture/rooted-shell-namespaces.md) - Filesystem structure
+- [Rooted Trees: Enumeration and Generation](docs/cognitive-architecture/rooted-trees-enumeration.md) - Complete guide to tree enumeration algorithms
 - [Membrane Computing](docs/cognitive-architecture/membrane-computing.md) - P-System semantics
+- [Membrane Complexity Theory](docs/cognitive-architecture/membrane-complexity-theory.md) - P vs NP collapse in parallel models
 - [Matula Numbers](docs/cognitive-architecture/matula-numbers.md) - Integer encoding via prime factorization
 
 ## 🚀 Architecture Overview
