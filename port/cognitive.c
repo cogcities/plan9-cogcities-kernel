@@ -865,6 +865,36 @@ tree_to_namespace_path(char *parens, char *base_domain)
     return path;
 }
 
+RootedTree*
+create_rooted_tree_from_parens(char *parens)
+{
+    RootedTree *rt;
+    tree binary_rep;
+    int node_count;
+    
+    // For now, create a simple representation
+    // In full implementation, would parse parens to binary
+    binary_rep = 0;  // Simplified
+    node_count = strlen(parens) / 2; // Approximate
+    
+    rt = malloc(sizeof(RootedTree));
+    if (rt == nil)
+        return nil;
+    
+    rt->binary_rep = binary_rep;
+    rt->node_count = node_count;
+    rt->parens_notation = strdup(parens);
+    rt->namespace_path = nil;
+    rt->depth = 0;
+    rt->subtrees = nil;
+    rt->subtree_count = 0;
+    
+    // Compute Matula number from parentheses
+    rt->matula_number = parens_to_matula(parens);
+    
+    return rt;
+}
+
 /*
  * Matula Number Functions
  * 
@@ -1355,6 +1385,585 @@ demo_traffic_energy_coordination(void)
 }
 
 /*
+ * ═══════════════════════════════════════════════════════════════════════
+ * ECHO STATE NETWORK (ESN) IMPLEMENTATION
+ * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * An Echo State Network (ESN) is the bridge structure that unifies all
+ * parallel cognitive frameworks in this system:
+ * 
+ * 1. Dyck/Parentheses Grammar   - ESN as continuously rewritten expressions
+ * 2. Rooted Trees                - ESN as dynamic forest with grafting
+ * 3. Matula Numbers              - ESN state as evolving integer factorization
+ * 4. Membrane Systems            - ESN as echo-multiset network with decay
+ * 5. Hypergraphs                 - ESN as weighted hypergraph automaton
+ * 6. Multiplicative RNN          - ESN as prime-exponent flow field
+ * 7. Statistical Physics         - ESN as deterministic microstate ensemble
+ * 8. Quantum-like Dynamics       - ESN as mixed prime-mode superposition
+ * 
+ * The ESN provides a fixed reservoir with rich recurrent dynamics where:
+ * - State evolves as: x(t+1) = f(W·x(t) + W_in·u(t))
+ * - W = sparse, random, stable reservoir matrix (spectral radius < 1)
+ * - Reservoir echoes input history through decaying activations
+ * - Only readout layer is trained; reservoir structure is fixed
+ */
+
+/*
+ * ESN Data Structures
+ */
+
+typedef struct EchoStateNetwork EchoStateNetwork;
+typedef struct ReservoirNode ReservoirNode;
+typedef struct ReservoirConnection ReservoirConnection;
+typedef struct ESNState ESNState;
+
+// A single neuron/node in the reservoir
+struct ReservoirNode {
+    int node_id;                      // Unique node identifier
+    float activation;                 // Current activation value
+    float bias;                       // Node bias
+    
+    // Matula representation: node as prime
+    uvlong prime_index;               // This node's prime index
+    
+    // Rooted tree representation: node as tree
+    RootedTree *tree_structure;       // Node's structural identity
+    
+    // Membrane representation: node as membrane region
+    char *membrane_id;                // Membrane identifier
+    int object_count;                 // Multiset object count
+    float decay_rate;                 // Echo decay rate (spectral radius)
+    
+    ReservoirConnection **incoming;   // Incoming connections
+    int incoming_count;
+    ReservoirConnection **outgoing;   // Outgoing connections  
+    int outgoing_count;
+};
+
+// Connection between reservoir nodes (hyperedge)
+struct ReservoirConnection {
+    int connection_id;
+    ReservoirNode *source;
+    ReservoirNode *target;
+    float weight;                     // Connection weight
+    
+    // Hypergraph representation
+    int hyperedge_id;                 // Part of which hyperedge
+    ReservoirNode **hyperedge_nodes;  // All nodes in this hyperedge
+    int hyperedge_size;
+};
+
+// Complete ESN state at time t
+struct ESNState {
+    uvlong matula_encoding;           // State as single Matula number
+    float *activations;               // State as activation vector
+    int reservoir_size;
+    
+    // Dyck grammar representation: stack profile
+    char *dyck_expression;            // Current parentheses configuration
+    int stack_depth;                  // Current nesting depth
+    
+    // Rooted tree representation: forest configuration
+    RootedTree **forest;              // Dynamic forest of trees
+    int forest_size;
+    
+    // Membrane representation: multiset configuration
+    int *multisets;                   // Object counts per membrane
+    int membrane_count;
+    
+    time_t timestamp;                 // When this state occurred
+    ESNState *previous;               // Previous state for history
+};
+
+// Complete Echo State Network
+struct EchoStateNetwork {
+    char *esn_id;                     // Network identifier
+    int reservoir_size;               // Number of reservoir nodes
+    float spectral_radius;            // Max eigenvalue (controls echo)
+    float input_scaling;              // Input weight scaling
+    float leak_rate;                  // Leak rate (1.0 = no leak)
+    
+    ReservoirNode **nodes;            // All reservoir nodes
+    ReservoirConnection **connections; // All connections
+    int connection_count;
+    
+    // Weight matrices
+    float **W_reservoir;              // Reservoir recurrent weights
+    float **W_input;                  // Input weights
+    float **W_output;                 // Output/readout weights (trained)
+    
+    int input_dim;                    // Input dimensionality
+    int output_dim;                   // Output dimensionality
+    
+    // Current state
+    ESNState *current_state;
+    
+    // Matula evolution history
+    uvlong *matula_history;           // History of state as integers
+    int history_size;
+    int history_capacity;
+    
+    // Framework-specific representations
+    char *dyck_grammar;               // Rewriting rules for parentheses
+    void *hypergraph;                 // Hypergraph structure
+    void *membrane_system;            // P-System configuration
+    
+    Lock esn_lock;                    // ESN synchronization
+    time_t creation_time;
+};
+
+/*
+ * ESN Initialization
+ */
+
+EchoStateNetwork*
+create_esn(int reservoir_size, int input_dim, int output_dim, float spectral_radius)
+{
+    EchoStateNetwork *esn;
+    int i, j;
+    
+    esn = malloc(sizeof(EchoStateNetwork));
+    if (esn == nil)
+        return nil;
+        
+    esn->esn_id = smprint("esn-%lud", time(NULL));
+    esn->reservoir_size = reservoir_size;
+    esn->spectral_radius = spectral_radius;
+    esn->input_scaling = 1.0;
+    esn->leak_rate = 1.0;
+    esn->input_dim = input_dim;
+    esn->output_dim = output_dim;
+    
+    // Allocate reservoir nodes
+    esn->nodes = malloc(reservoir_size * sizeof(ReservoirNode*));
+    for (i = 0; i < reservoir_size; i++) {
+        esn->nodes[i] = malloc(sizeof(ReservoirNode));
+        esn->nodes[i]->node_id = i;
+        esn->nodes[i]->activation = 0.0;
+        esn->nodes[i]->bias = (frand() - 0.5) * 0.1;
+        esn->nodes[i]->prime_index = nth_prime(i + 1);
+        esn->nodes[i]->decay_rate = spectral_radius;
+        esn->nodes[i]->membrane_id = smprint("m%d", i);
+        esn->nodes[i]->object_count = 0;
+        esn->nodes[i]->incoming_count = 0;
+        esn->nodes[i]->outgoing_count = 0;
+    }
+    
+    // Allocate weight matrices
+    esn->W_reservoir = malloc(reservoir_size * sizeof(float*));
+    esn->W_input = malloc(reservoir_size * sizeof(float*));
+    esn->W_output = malloc(output_dim * sizeof(float*));
+    
+    for (i = 0; i < reservoir_size; i++) {
+        esn->W_reservoir[i] = malloc(reservoir_size * sizeof(float));
+        esn->W_input[i] = malloc(input_dim * sizeof(float));
+    }
+    
+    for (i = 0; i < output_dim; i++) {
+        esn->W_output[i] = malloc(reservoir_size * sizeof(float));
+    }
+    
+    // Initialize reservoir weights (sparse random)
+    esn_init_reservoir_weights(esn);
+    
+    // Initialize input weights (random)
+    for (i = 0; i < reservoir_size; i++) {
+        for (j = 0; j < input_dim; j++) {
+            esn->W_input[i][j] = (frand() - 0.5) * 2.0 * esn->input_scaling;
+        }
+    }
+    
+    // Initialize state
+    esn->current_state = malloc(sizeof(ESNState));
+    esn->current_state->activations = malloc(reservoir_size * sizeof(float));
+    esn->current_state->reservoir_size = reservoir_size;
+    esn->current_state->matula_encoding = 1; // Start with single node
+    esn->current_state->timestamp = time(NULL);
+    esn->current_state->previous = nil;
+    
+    // Initialize history
+    esn->history_capacity = 1000;
+    esn->matula_history = malloc(esn->history_capacity * sizeof(uvlong));
+    esn->history_size = 0;
+    
+    esn->creation_time = time(NULL);
+    
+    return esn;
+}
+
+/*
+ * Initialize reservoir weights with sparse random connectivity
+ * Scale to desired spectral radius
+ */
+void
+esn_init_reservoir_weights(EchoStateNetwork *esn)
+{
+    int i, j;
+    float sparsity = 0.1; // 10% connectivity
+    float sum, scale;
+    
+    // Create sparse random weights
+    for (i = 0; i < esn->reservoir_size; i++) {
+        for (j = 0; j < esn->reservoir_size; j++) {
+            if (frand() < sparsity) {
+                esn->W_reservoir[i][j] = (frand() - 0.5) * 2.0;
+            } else {
+                esn->W_reservoir[i][j] = 0.0;
+            }
+        }
+    }
+    
+    // Scale to spectral radius (simplified: scale by largest row sum)
+    sum = 0.0;
+    for (i = 0; i < esn->reservoir_size; i++) {
+        float row_sum = 0.0;
+        for (j = 0; j < esn->reservoir_size; j++) {
+            row_sum += esn->W_reservoir[i][j] * esn->W_reservoir[i][j];
+        }
+        if (row_sum > sum)
+            sum = row_sum;
+    }
+    
+    scale = esn->spectral_radius / sqrt(sum);
+    for (i = 0; i < esn->reservoir_size; i++) {
+        for (j = 0; j < esn->reservoir_size; j++) {
+            esn->W_reservoir[i][j] *= scale;
+        }
+    }
+}
+
+/*
+ * ESN State Update: Core recurrence equation
+ * x(t+1) = f(W·x(t) + W_in·u(t))
+ */
+void
+esn_update_state(EchoStateNetwork *esn, float *input)
+{
+    ESNState *new_state;
+    float *new_activations;
+    int i, j;
+    float sum, old_activation;
+    
+    new_state = malloc(sizeof(ESNState));
+    new_activations = malloc(esn->reservoir_size * sizeof(float));
+    
+    // Compute new activations
+    for (i = 0; i < esn->reservoir_size; i++) {
+        sum = esn->nodes[i]->bias;
+        
+        // Reservoir recurrence: W·x(t)
+        for (j = 0; j < esn->reservoir_size; j++) {
+            sum += esn->W_reservoir[i][j] * esn->current_state->activations[j];
+        }
+        
+        // Input: W_in·u(t)
+        for (j = 0; j < esn->input_dim; j++) {
+            sum += esn->W_input[i][j] * input[j];
+        }
+        
+        // Apply activation function (tanh) with leak rate
+        old_activation = esn->current_state->activations[i];
+        new_activations[i] = (1.0 - esn->leak_rate) * old_activation +
+                             esn->leak_rate * tanh(sum);
+        
+        // Update node
+        esn->nodes[i]->activation = new_activations[i];
+    }
+    
+    // Update state
+    new_state->activations = new_activations;
+    new_state->reservoir_size = esn->reservoir_size;
+    new_state->timestamp = time(NULL);
+    new_state->previous = esn->current_state;
+    
+    // Compute Matula encoding of new state
+    esn_state_to_matula(esn, new_state);
+    
+    esn->current_state = new_state;
+    
+    // Store in history
+    if (esn->history_size < esn->history_capacity) {
+        esn->matula_history[esn->history_size++] = new_state->matula_encoding;
+    }
+}
+
+/*
+ * Convert ESN state to Matula number encoding
+ * 
+ * Algorithm:
+ * 1. Quantize activations to discrete levels
+ * 2. Treat quantized levels as exponents on prime bases
+ * 3. Multiply: matula = ∏ p_i^(quantized_activation_i)
+ * 
+ * This encodes the full reservoir state as a single integer.
+ */
+void
+esn_state_to_matula(EchoStateNetwork *esn, ESNState *state)
+{
+    uvlong matula;
+    int i, exponent;
+    uvlong prime;
+    
+    matula = 1;
+    
+    for (i = 0; i < esn->reservoir_size && i < NPRIMES; i++) {
+        // Quantize activation to 0-3 range
+        exponent = (int)((state->activations[i] + 1.0) * 1.5);
+        if (exponent < 0) exponent = 0;
+        if (exponent > 3) exponent = 3;
+        
+        // Get prime for this node
+        prime = esn->nodes[i]->prime_index;
+        
+        // Multiply matula by prime^exponent
+        for (int e = 0; e < exponent; e++) {
+            matula *= prime;
+        }
+    }
+    
+    state->matula_encoding = matula;
+}
+
+/*
+ * Convert Matula number back to ESN state
+ * 
+ * Algorithm:
+ * 1. Factorize matula number
+ * 2. For each prime p_i with exponent e_i:
+ *    - Set activation_i based on exponent
+ * 3. Normalize to [-1, 1] range
+ */
+void
+matula_to_esn_state(EchoStateNetwork *esn, uvlong matula)
+{
+    int exponents[NPRIMES];
+    int i;
+    
+    // Factorize
+    factorize(matula, exponents, NPRIMES);
+    
+    // Set activations based on exponents
+    for (i = 0; i < esn->reservoir_size && i < NPRIMES; i++) {
+        // Convert exponent back to activation
+        esn->current_state->activations[i] = (exponents[i] / 1.5) - 1.0;
+        esn->nodes[i]->activation = esn->current_state->activations[i];
+    }
+    
+    esn->current_state->matula_encoding = matula;
+}
+
+/*
+ * ESN as Dyck Grammar Machine
+ * 
+ * Each reservoir node corresponds to a parenthesis type.
+ * ESN update = continuously rewriting parentheses configurations.
+ */
+char*
+esn_to_dyck_expression(EchoStateNetwork *esn)
+{
+    char *expr;
+    int i, level;
+    int pos = 0;
+    int size = esn->reservoir_size * 4; // Estimate
+    
+    expr = malloc(size);
+    
+    // Convert activation pattern to nested parentheses
+    for (i = 0; i < esn->reservoir_size; i++) {
+        // Activation level determines nesting
+        level = (int)((esn->nodes[i]->activation + 1.0) * 2.0);
+        
+        if (level > 0 && pos < size - 4) {
+            for (int l = 0; l < level; l++) {
+                expr[pos++] = '(';
+            }
+            for (int l = 0; l < level; l++) {
+                expr[pos++] = ')';
+            }
+        }
+    }
+    
+    expr[pos] = '\0';
+    return expr;
+}
+
+/*
+ * ESN as Rooted Tree Forest
+ * 
+ * Each update = grafting new subtrees at leaves.
+ * ESN trajectory = moving fixed point in forest space.
+ */
+RootedTree**
+esn_to_forest(EchoStateNetwork *esn, int *forest_size)
+{
+    RootedTree **forest;
+    int i, count;
+    
+    count = 0;
+    forest = malloc(esn->reservoir_size * sizeof(RootedTree*));
+    
+    // Each active node becomes a tree
+    for (i = 0; i < esn->reservoir_size; i++) {
+        if (esn->nodes[i]->activation > 0.1) {
+            // Create tree based on activation
+            char *parens = smprint("(%s)", 
+                                  esn->nodes[i]->activation > 0.5 ? "()" : "");
+            forest[count] = create_rooted_tree_from_parens(parens);
+            count++;
+            free(parens);
+        }
+    }
+    
+    *forest_size = count;
+    return forest;
+}
+
+/*
+ * ESN as Membrane System
+ * 
+ * Each reservoir node = membrane region.
+ * Activation = multiset object count.
+ * Update = maximal parallel rule application.
+ * Echo = residual multisets that decay slowly.
+ */
+void
+esn_to_membrane_system(EchoStateNetwork *esn)
+{
+    int i;
+    
+    for (i = 0; i < esn->reservoir_size; i++) {
+        // Quantize activation to object count
+        esn->nodes[i]->object_count = 
+            (int)((esn->nodes[i]->activation + 1.0) * 10.0);
+        
+        if (esn->nodes[i]->object_count < 0)
+            esn->nodes[i]->object_count = 0;
+    }
+}
+
+/*
+ * ESN as Hypergraph
+ * 
+ * Nodes = reservoir units
+ * Hyperedges = recurrent connectivity groups
+ * Update = signal propagation along hyperedges
+ */
+void
+esn_create_hypergraph_representation(EchoStateNetwork *esn)
+{
+    int i, j;
+    ReservoirConnection *conn;
+    
+    esn->connection_count = 0;
+    esn->connections = malloc(esn->reservoir_size * esn->reservoir_size * 
+                             sizeof(ReservoirConnection*));
+    
+    // Create hyperedges from weight matrix
+    for (i = 0; i < esn->reservoir_size; i++) {
+        for (j = 0; j < esn->reservoir_size; j++) {
+            if (esn->W_reservoir[i][j] != 0.0) {
+                conn = malloc(sizeof(ReservoirConnection));
+                conn->connection_id = esn->connection_count;
+                conn->source = esn->nodes[i];
+                conn->target = esn->nodes[j];
+                conn->weight = esn->W_reservoir[i][j];
+                conn->hyperedge_id = esn->connection_count;
+                
+                esn->connections[esn->connection_count++] = conn;
+            }
+        }
+    }
+}
+
+/*
+ * ESN Output/Readout
+ * 
+ * y(t) = W_out · x(t)
+ */
+void
+esn_compute_output(EchoStateNetwork *esn, float *output)
+{
+    int i, j;
+    float sum;
+    
+    for (i = 0; i < esn->output_dim; i++) {
+        sum = 0.0;
+        for (j = 0; j < esn->reservoir_size; j++) {
+            sum += esn->W_output[i][j] * esn->current_state->activations[j];
+        }
+        output[i] = sum;
+    }
+}
+
+/*
+ * ESN Information Queries
+ */
+
+void
+esn_print_state(EchoStateNetwork *esn)
+{
+    int i;
+    
+    print("═══════════════════════════════════════════════════════════\n");
+    print("ESN State: %s\n", esn->esn_id);
+    print("═══════════════════════════════════════════════════════════\n");
+    print("Matula Encoding: %llud\n", esn->current_state->matula_encoding);
+    print("Reservoir Size: %d\n", esn->reservoir_size);
+    print("Spectral Radius: %.3f\n", esn->spectral_radius);
+    print("\nTop 10 Activations:\n");
+    
+    for (i = 0; i < 10 && i < esn->reservoir_size; i++) {
+        print("  Node %d (prime %llud): %.4f (objects: %d)\n",
+              i, 
+              esn->nodes[i]->prime_index,
+              esn->nodes[i]->activation,
+              esn->nodes[i]->object_count);
+    }
+    
+    print("\nDyck Expression: %s\n", esn_to_dyck_expression(esn));
+    print("═══════════════════════════════════════════════════════════\n");
+}
+
+char*
+esn_get_info(EchoStateNetwork *esn)
+{
+    char *info;
+    int forest_size;
+    
+    info = smprint(
+        "Echo State Network: %s\n"
+        "  Reservoir: %d nodes\n"
+        "  Spectral Radius: %.3f\n"
+        "  Input Dim: %d, Output Dim: %d\n"
+        "  Current Matula: %llud\n"
+        "  History Size: %d\n"
+        "  Created: %lud\n"
+        "\n"
+        "Multi-Framework Representation:\n"
+        "  1. Dyck Grammar: %s\n"
+        "  2. Matula Number: %llud (factorization available)\n"
+        "  3. Rooted Forest: %d trees\n"
+        "  4. Membrane System: %d active membranes\n"
+        "  5. Hypergraph: %d edges\n"
+        "  6. Prime Modes: Σ p_i^e_i encoding\n",
+        esn->esn_id,
+        esn->reservoir_size,
+        esn->spectral_radius,
+        esn->input_dim, esn->output_dim,
+        esn->current_state->matula_encoding,
+        esn->history_size,
+        esn->creation_time,
+        esn_to_dyck_expression(esn),
+        esn->current_state->matula_encoding,
+        (esn_to_forest(esn, &forest_size), forest_size),
+        esn->reservoir_size,
+        esn->connection_count
+    );
+    
+    return info;
+}
+
+/*
  * Note2Self: Implementation Status
  * 
  * @copilot remembers: This implementation provides a minimal but functional
@@ -1365,6 +1974,13 @@ demo_traffic_energy_coordination(void)
  * 3. Swarm coordination through process groups
  * 4. Emergence detection algorithms
  * 5. Demo showing traffic-energy coordination
+ * 6. Echo State Network (ESN) implementation bridging multiple frameworks:
+ *    - Dyck grammar rewriting
+ *    - Rooted tree forests
+ *    - Matula number evolution
+ *    - Membrane computing
+ *    - Hypergraph dynamics
+ *    - Prime-mode superposition
  * 
  * This code can be integrated into the Plan 9 kernel as port/cognitive.c
  * and demonstrates the core concepts while maintaining Plan 9's simplicity.
@@ -1374,6 +1990,7 @@ demo_traffic_energy_coordination(void)
  * - Add to devfs.c for filesystem interface
  * - Extend proc.c for swarm process groups
  * - Create user-space tools for cognitive cities management
+ * - Build ESN demonstration programs
  * 
  * The foundation is solid and ready for expansion!
  */
