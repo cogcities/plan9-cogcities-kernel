@@ -1,7 +1,7 @@
 </$objtype/mkfile
 
-TARG=traffic-demo energy-demo governance-demo integration-demo rooted-shell-demo
-OFILES=traffic-demo.$O energy-demo.$O governance-demo.$O integration-demo.$O rooted-shell-demo.$O
+TARG=traffic-demo energy-demo governance-demo integration-demo rooted-shell-demo matula-demo
+OFILES=traffic-demo.$O energy-demo.$O governance-demo.$O integration-demo.$O rooted-shell-demo.$O matula-demo.$O
 
 <//$objtype/mkone
 
