@@ -358,7 +358,13 @@ See [GETTING_STARTED.md](GETTING_STARTED.md) for a comprehensive guide.
    ./matula-demo
    ```
 
-3. **Explore cognitive domains:**
+3. **Understand P vs NP complexity collapse:**
+   ```bash
+   cd tools/demos
+   ./parallel-complexity-demo 10 30
+   ```
+
+4. **Explore cognitive domains:**
    ```bash
    # List domains
    cogctl domains
@@ -388,6 +394,7 @@ See [GETTING_STARTED.md](GETTING_STARTED.md) for a comprehensive guide.
 - **cogmon**: Real-time monitoring tool for observing system behavior
 - **traffic-demo**: Demonstration of traffic optimization with cross-domain coordination
 - **matula-demo**: Interactive demonstration of Matula number encoding for rooted trees
+- **parallel-complexity-demo**: Shows P vs NP collapse in membrane computing systems
 
 See [tools/README.md](tools/README.md) for detailed tool documentation.
 

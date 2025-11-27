@@ -1,5 +1,13 @@
 # Membrane Computing with Rooted Shell Namespaces
 
+## Overview
+
+Membrane computing (P-Systems) provides a computational model inspired by biological cells that fundamentally changes how we think about complexity. This document explains how the Plan 9 Cognitive Cities Kernel implements membrane computing concepts and how they relate to rooted shell namespaces.
+
+**For a detailed analysis of how membrane computing collapses the P vs NP distinction through maximal parallelism, see [Membrane Complexity Theory](membrane-complexity-theory.md).**
+
+**For the mathematical foundations of rooted tree enumeration and generation, see [Rooted Trees: Enumeration and Generation](rooted-trees-enumeration.md).**
+
 ## Triple Representation
 
 The rooted shell namespace system provides a **triple representation** for each shell:
@@ -629,6 +637,77 @@ The rooted shell namespace provides a **universal computational substrate**:
 - Any membrane topology can be enumerated (via A000081)
 - Natural mapping to filesystem operations
 - Integration with Plan 9 namespace model
+
+## Parallelism and Complexity
+
+### Maximal Parallel Semantics
+
+A fundamental property of membrane computing is **maximal parallelism**: all applicable rules fire simultaneously, not sequentially.
+
+```c
+// NOT sequential application:
+for (each rule in rules) {
+    apply_rule_to_all_objects();  // O(n) time for n rules
+}
+
+// BUT maximal parallel application:
+apply_all_rules_simultaneously();  // O(1) time step
+```
+
+This has profound implications for computational complexity. See [Membrane Complexity Theory](membrane-complexity-theory.md) for a detailed analysis.
+
+### Multiplicity as Weight, Not Time
+
+In membrane systems, the **multiplicity** of objects (how many copies exist) affects **space**, not **time**:
+
+```
+Multiset: {a, a, a, b, b}
+
+Sequential interpretation:
+  - 3 copies of object a → 3 time steps
+  - 2 copies of object b → 2 time steps
+  - Total: 5 time steps
+
+Membrane interpretation:
+  - 3 copies of object a → 3 concurrent processes
+  - 2 copies of object b → 2 concurrent processes
+  - Total: 1 time step (all execute in parallel)
+```
+
+### Connection to Matula Numbers
+
+Matula numbers encode tree structure via prime factorization, where **exponents represent multiplicity**:
+
+```
+Tree: (()()())
+Matula: 8 = 2³
+Interpretation: Root with THREE children of type ()
+
+Sequential cost: 3 operations
+Parallel cost: 1 operation (3 concurrent membranes)
+```
+
+The exponent encodes **how many** (spatial weight), not **how long** (temporal duration).
+
+### Complexity Collapse
+
+In maximally parallel membrane systems:
+
+| Model | Time | Space |
+|-------|------|-------|
+| Sequential (Classical) | O(2^n) | O(n) |
+| Parallel (Membrane) | O(n) | O(2^n) |
+
+The **exponential cost moves from TIME to SPACE**.
+
+For NP-complete problems like SAT:
+- Classical: Exponential time to search all assignments
+- Membrane: Polynomial time (create membranes in parallel, check in parallel, collect results in parallel)
+- Cost: Exponential space (exponential number of membranes)
+
+**This is why P and NP collapse in the membrane model** - both become polynomial time, though NP requires exponential space.
+
+For a rigorous treatment, see [Membrane Complexity Theory](membrane-complexity-theory.md).
 
 ## References
 
