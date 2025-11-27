@@ -79,10 +79,12 @@ Parentheses: (()())
 Interpretation 1: 3-shell T-junction configuration
 Interpretation 2: Membrane with two submembranes
 Interpretation 3: P-System with multiset objects
+Matula Number: 4 (= 2² via prime factorization)
 
 As Namespace:  /transportation/shell0/shell1
 As File:       /transportation/shell0/shell1.shell
 As Membrane:   m0 containing m1 and m2 (siblings)
+As Integer:    Matula number 4 for efficient storage/lookup
 ```
 
 ### Mathematical Foundation
@@ -91,10 +93,17 @@ Follows the A000081 sequence which simultaneously enumerates:
 - **Rooted trees**: Hierarchical structures
 - **Free hyper-multisets**: Nested collections
 - **P-System configurations**: Membrane topologies
+- **Matula numbers**: Integer encoding via prime factorization
 
 ```
 n=1: 1 tree   n=2: 1 tree   n=3: 2 trees   n=4: 4 trees
 n=5: 9 trees  n=6: 20 trees n=7: 48 trees  n=8: 115 trees
+
+Matula encoding examples:
+()      → 1    (single node)
+(())    → 2    (p(1) = 2)
+(()())  → 4    (2² = two children)
+((()))  → 3    (p(2) = 3)
 ```
 
 ### Membrane Computing Integration
@@ -125,6 +134,7 @@ Filesystem View:                Membrane Computer View:
 
 - [Rooted Shell Namespaces](docs/cognitive-architecture/rooted-shell-namespaces.md) - Filesystem structure
 - [Membrane Computing](docs/cognitive-architecture/membrane-computing.md) - P-System semantics
+- [Matula Numbers](docs/cognitive-architecture/matula-numbers.md) - Integer encoding via prime factorization
 
 ## 🚀 Architecture Overview
 
@@ -340,7 +350,13 @@ See [GETTING_STARTED.md](GETTING_STARTED.md) for a comprehensive guide.
    ./traffic-demo
    ```
 
-2. **Explore cognitive domains:**
+2. **Explore Matula number encoding:**
+   ```bash
+   cd tools/demos
+   ./matula-demo
+   ```
+
+3. **Explore cognitive domains:**
    ```bash
    # List domains
    cogctl domains
@@ -352,7 +368,7 @@ See [GETTING_STARTED.md](GETTING_STARTED.md) for a comprehensive guide.
    cogmon -l
    ```
 
-3. **Create your own cognitive namespace:**
+4. **Create your own cognitive namespace:**
    ```bash
    # Create namespace
    cogctl create-namespace my-domain /cognitive-cities/domains/my-domain
@@ -369,6 +385,7 @@ See [GETTING_STARTED.md](GETTING_STARTED.md) for a comprehensive guide.
 - **cogctl**: Command-line control utility for managing cognitive components
 - **cogmon**: Real-time monitoring tool for observing system behavior
 - **traffic-demo**: Demonstration of traffic optimization with cross-domain coordination
+- **matula-demo**: Interactive demonstration of Matula number encoding for rooted trees
 
 See [tools/README.md](tools/README.md) for detailed tool documentation.
 
@@ -383,7 +400,8 @@ plan9-cogcities-kernel/
 │   ├── cogctl/              # Control utility
 │   ├── cogmon/              # Monitoring tool
 │   └── demos/
-│       └── traffic-demo.c   # Traffic optimization demo
+│       ├── traffic-demo.c   # Traffic optimization demo
+│       └── matula-demo.c    # Matula numbers demonstration
 ├── docs/
 │   ├── cognitive-architecture/
 │   ├── implementation/
