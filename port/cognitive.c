@@ -1716,8 +1716,11 @@ esn_state_to_matula(EchoStateNetwork *esn, ESNState *state)
         prime = esn->nodes[i]->prime_index;
         
         // Multiply matula by prime^exponent
-        for (int e = 0; e < exponent; e++) {
-            matula *= prime;
+        {
+            int e;
+            for (e = 0; e < exponent; e++) {
+                matula *= prime;
+            }
         }
     }
     
@@ -1770,14 +1773,15 @@ esn_to_dyck_expression(EchoStateNetwork *esn)
     
     // Convert activation pattern to nested parentheses
     for (i = 0; i < esn->reservoir_size; i++) {
+        int l;
         // Activation level determines nesting
         level = (int)((esn->nodes[i]->activation + 1.0) * 2.0);
         
         if (level > 0 && pos < size - 4) {
-            for (int l = 0; l < level; l++) {
+            for (l = 0; l < level; l++) {
                 expr[pos++] = '(';
             }
-            for (int l = 0; l < level; l++) {
+            for (l = 0; l < level; l++) {
                 expr[pos++] = ')';
             }
         }

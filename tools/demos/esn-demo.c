@@ -128,11 +128,14 @@ unsigned long long esn_to_matula(ESN *esn) {
         if (exponent > 3) exponent = 3;
         
         // Multiply by prime^exponent
-        for (int e = 0; e < exponent; e++) {
-            // Avoid overflow for large numbers
-            if (matula > ULLONG_MAX / primes[i])
-                return matula; // Return current value to avoid overflow
-            matula *= primes[i];
+        {
+            int e;
+            for (e = 0; e < exponent; e++) {
+                // Avoid overflow for large numbers
+                if (matula > ULLONG_MAX / primes[i])
+                    return matula; // Return current value to avoid overflow
+                matula *= primes[i];
+            }
         }
     }
     
@@ -144,18 +147,22 @@ unsigned long long esn_to_matula(ESN *esn) {
 void esn_to_dyck(ESN *esn, char *buffer, int buf_size) {
     int pos = 0;
     
-    for (int i = 0; i < esn->reservoir_size && pos < buf_size - 8; i++) {
-        // Activation level determines nesting
-        int level = (int)((esn->activations[i] + 1.0) * 1.5);
-        if (level < 0) level = 0;
-        if (level > 3) level = 3;
-        
-        if (level > 0) {
-            for (int l = 0; l < level; l++) {
-                buffer[pos++] = '(';
-            }
-            for (int l = 0; l < level; l++) {
-                buffer[pos++] = ')';
+    {
+        int i;
+        for (i = 0; i < esn->reservoir_size && pos < buf_size - 8; i++) {
+            int l;
+            // Activation level determines nesting
+            int level = (int)((esn->activations[i] + 1.0) * 1.5);
+            if (level < 0) level = 0;
+            if (level > 3) level = 3;
+            
+            if (level > 0) {
+                for (l = 0; l < level; l++) {
+                    buffer[pos++] = '(';
+                }
+                for (l = 0; l < level; l++) {
+                    buffer[pos++] = ')';
+                }
             }
         }
     }
