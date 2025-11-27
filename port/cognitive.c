@@ -1219,6 +1219,7 @@ get_shell_info(RootedShell *shell)
             "Shell ID: %s\n"
             "Domain: %s\n"
             "Tree Structure: %s\n"
+            "Matula Number: %llud\n"
             "Node Count: %d\n"
             "Namespace: %s\n"
             "File Path: %s\n"
@@ -1226,6 +1227,7 @@ get_shell_info(RootedShell *shell)
             shell->shell_id,
             shell->domain,
             shell->tree_structure->parens_notation,
+            shell->tree_structure->matula_number,
             shell->tree_structure->node_count,
             shell->namespace_mount_point,
             shell->file_path,
@@ -1247,6 +1249,55 @@ print_rooted_tree_stats(void)
     }
     
     print("  Active shells: %d\n", cognitive_state.shell_count);
+}
+
+/*
+ * List trees with their Matula numbers
+ * Returns a formatted string showing tree structures and encodings
+ */
+char*
+list_trees_with_matula(int max_size)
+{
+    if (rooted_trees.list == nil)
+        init_rooted_trees();
+    
+    if (max_size > MAXN)
+        max_size = MAXN;
+    
+    generate_trees(max_size);
+    
+    // Allocate buffer for output
+    char *output = malloc(8192);
+    if (output == nil)
+        return nil;
+    
+    int pos = 0;
+    pos += snprint(output + pos, 8192 - pos, 
+                   "Rooted Trees with Matula Numbers\n");
+    pos += snprint(output + pos, 8192 - pos, 
+                   "================================\n\n");
+    pos += snprint(output + pos, 8192 - pos,
+                   "Size  Tree              Matula  Factorization\n");
+    pos += snprint(output + pos, 8192 - pos,
+                   "----  ---------------   ------  -------------\n");
+    
+    for (int n = 1; n <= max_size && n <= MAXN; n++) {
+        ulong start = rooted_trees.offset[n];
+        ulong end = rooted_trees.offset[n + 1];
+        
+        for (ulong i = start; i < end && pos < 8000; i++) {
+            RootedTree *tree = create_rooted_tree(rooted_trees.list[i], n);
+            if (tree != nil) {
+                pos += snprint(output + pos, 8192 - pos,
+                              " %2d   %-15s  %6llud\n",
+                              n, tree->parens_notation, tree->matula_number);
+                free(tree->parens_notation);
+                free(tree);
+            }
+        }
+    }
+    
+    return output;
 }
 
 /*
