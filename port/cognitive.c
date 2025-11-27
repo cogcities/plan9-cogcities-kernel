@@ -678,6 +678,12 @@ init_rooted_trees(void)
         rooted_trees.list = malloc(rooted_trees.list_capacity * sizeof(tree));
         rooted_trees.offset = malloc((MAXN + 2) * sizeof(ulong));
         
+        if (rooted_trees.list == nil || rooted_trees.offset == nil) {
+            print("rooted_trees: failed to allocate memory\n");
+            unlock(&rooted_trees);
+            return;
+        }
+        
         // Initialize: offset[0] = 0, tree size 0 has no trees
         rooted_trees.offset[0] = 0;
         rooted_trees.list_size = 0;
@@ -696,6 +702,13 @@ append_tree(tree t)
     if (rooted_trees.list_size >= rooted_trees.list_capacity) {
         int new_capacity = rooted_trees.list_capacity * 2;
         tree *new_list = malloc(new_capacity * sizeof(tree));
+        
+        if (new_list == nil) {
+            print("append_tree: failed to expand list\n");
+            unlock(&rooted_trees);
+            return;
+        }
+        
         memmove(new_list, rooted_trees.list, rooted_trees.list_size * sizeof(tree));
         free(rooted_trees.list);
         rooted_trees.list = new_list;
@@ -782,6 +795,9 @@ static char*
 tree_to_parens(tree t, uint len)
 {
     char *buf = malloc((2 * len + 1) * sizeof(char));
+    if (buf == nil)
+        return nil;
+    
     int pos = 0;
     tree_to_parens_recursive(t, 2 * len, buf, &pos);
     buf[pos] = '\0';
@@ -804,6 +820,10 @@ create_rooted_tree(tree binary_rep, uint node_count)
     rt->binary_rep = binary_rep;
     rt->node_count = node_count;
     rt->parens_notation = tree_to_parens(binary_rep, node_count);
+    if (rt->parens_notation == nil) {
+        free(rt);
+        return nil;
+    }
     rt->namespace_path = nil;  // Set later
     rt->depth = 0;  // Calculate later
     rt->subtrees = nil;
@@ -819,13 +839,16 @@ tree_to_namespace_path(char *parens, char *base_domain)
     // E.g., "(()())" becomes "/domain/shell0/shell1"
     
     char *path = malloc(1024);
+    if (path == nil)
+        return nil;
+    
     int pos = 0;
     int depth = 0;
     int shell_num = 0;
     
     pos += snprint(path + pos, 1024 - pos, "/%s", base_domain);
     
-    for (int i = 0; parens[i] != '\0'; i++) {
+    for (int i = 0; parens[i] != '\0' && pos < 1020; i++) {
         if (parens[i] == '(') {
             pos += snprint(path + pos, 1024 - pos, "/shell%d", shell_num++);
             depth++;
@@ -856,6 +879,13 @@ create_rooted_shell(char *domain, RootedTree *tree_structure)
     
     // Create namespace representation
     char *ns_path = tree_to_namespace_path(tree_structure->parens_notation, domain);
+    if (ns_path == nil) {
+        free(shell->shell_id);
+        free(shell->domain);
+        free(shell);
+        return nil;
+    }
+    
     shell->as_namespace = create_cognitive_namespace(shell->shell_id, ns_path);
     shell->namespace_mount_point = ns_path;
     
@@ -881,8 +911,15 @@ create_rooted_shell(char *domain, RootedTree *tree_structure)
     // Add to global state
     lock(&cognitive_state);
     // Expand shells array if needed
-    cognitive_state.shells = realloc(cognitive_state.shells, 
-                                     (cognitive_state.shell_count + 1) * sizeof(RootedShell*));
+    RootedShell **new_shells = realloc(cognitive_state.shells, 
+                                       (cognitive_state.shell_count + 1) * sizeof(RootedShell*));
+    if (new_shells == nil) {
+        print("create_rooted_shell: failed to expand shells array\n");
+        unlock(&cognitive_state);
+        // Note: shell is still partially created, caller should handle
+        return shell;
+    }
+    cognitive_state.shells = new_shells;
     cognitive_state.shells[cognitive_state.shell_count++] = shell;
     unlock(&cognitive_state);
     
