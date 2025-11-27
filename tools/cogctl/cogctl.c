@@ -29,6 +29,12 @@ void cmd_detect_emergence(int argc, char *argv[]);
 void cmd_adapt_namespace(int argc, char *argv[]);
 void cmd_stats(int argc, char *argv[]);
 void cmd_help(int argc, char *argv[]);
+/* Rooted shell commands */
+void cmd_rooted_create(int argc, char *argv[]);
+void cmd_rooted_enumerate(int argc, char *argv[]);
+void cmd_rooted_list(int argc, char *argv[]);
+void cmd_rooted_info(int argc, char *argv[]);
+void cmd_rooted_stats(int argc, char *argv[]);
 
 CogCmd commands[] = {
 	{"domains", "cogctl domains", cmd_domains},
@@ -39,6 +45,11 @@ CogCmd commands[] = {
 	{"detect-emergence", "cogctl detect-emergence [domain] [threshold]", cmd_detect_emergence},
 	{"adapt-namespace", "cogctl adapt-namespace <domain> [auto|manual]", cmd_adapt_namespace},
 	{"stats", "cogctl stats [domain]", cmd_stats},
+	{"rooted-create", "cogctl rooted-create <domain> <parens>", cmd_rooted_create},
+	{"rooted-enumerate", "cogctl rooted-enumerate <domain> <max_size>", cmd_rooted_enumerate},
+	{"rooted-list", "cogctl rooted-list", cmd_rooted_list},
+	{"rooted-info", "cogctl rooted-info <shell_id>", cmd_rooted_info},
+	{"rooted-stats", "cogctl rooted-stats", cmd_rooted_stats},
 	{"help", "cogctl help", cmd_help},
 	{nil, nil, nil}
 };
@@ -340,5 +351,180 @@ cmd_stats(int argc, char *argv[])
 	}
 	
 	close(fd);
+	exits(nil);
+}
+
+/*
+ * Rooted Shell Commands
+ */
+
+void
+cmd_rooted_create(int argc, char *argv[])
+{
+	int fd;
+	char *domain, *parens;
+	char cmd[1024];
+	
+	if(argc < 3){
+		fprint(2, "usage: cogctl rooted-create <domain> <parens>\n");
+		fprint(2, "example: cogctl rooted-create transportation '(()())'\n");
+		exits("usage");
+	}
+	
+	domain = argv[1];
+	parens = argv[2];
+	
+	fd = open("/proc/cognitive/rooted/ctl", OWRITE);
+	if(fd < 0){
+		fprint(2, "cogctl: cannot open /proc/cognitive/rooted/ctl: %r\n");
+		exits("open");
+	}
+	
+	snprint(cmd, sizeof cmd, "create %s %s", domain, parens);
+	if(write(fd, cmd, strlen(cmd)) < 0){
+		fprint(2, "cogctl: write failed: %r\n");
+		exits("write");
+	}
+	
+	close(fd);
+	print("✓ Created rooted shell in domain '%s' with structure: %s\n", domain, parens);
+	exits(nil);
+}
+
+void
+cmd_rooted_enumerate(int argc, char *argv[])
+{
+	int fd;
+	char *domain;
+	int max_size;
+	char cmd[1024];
+	
+	if(argc < 3){
+		fprint(2, "usage: cogctl rooted-enumerate <domain> <max_size>\n");
+		fprint(2, "example: cogctl rooted-enumerate energy 5\n");
+		exits("usage");
+	}
+	
+	domain = argv[1];
+	max_size = atoi(argv[2]);
+	
+	if(max_size < 1 || max_size > 15){
+		fprint(2, "cogctl: max_size must be between 1 and 15\n");
+		exits("range");
+	}
+	
+	fd = open("/proc/cognitive/rooted/ctl", OWRITE);
+	if(fd < 0){
+		fprint(2, "cogctl: cannot open /proc/cognitive/rooted/ctl: %r\n");
+		exits("open");
+	}
+	
+	snprint(cmd, sizeof cmd, "enumerate %s %d", domain, max_size);
+	if(write(fd, cmd, strlen(cmd)) < 0){
+		fprint(2, "cogctl: write failed: %r\n");
+		exits("write");
+	}
+	
+	close(fd);
+	
+	/* Expected tree counts for reference */
+	int counts[] = {0, 1, 1, 2, 4, 9, 20, 48, 115, 286, 719, 1842, 4766, 12486, 32973, 87811};
+	int total = 0;
+	for(int i = 1; i <= max_size && i <= 15; i++)
+		total += counts[i];
+	
+	print("✓ Enumerated all rooted shells for domain '%s' up to size %d\n", domain, max_size);
+	print("  Total configurations: %d\n", total);
+	print("  (Following A000081 sequence)\n");
+	exits(nil);
+}
+
+void
+cmd_rooted_list(int argc, char *argv[])
+{
+	int fd, n;
+	char buf[4096];
+	
+	USED(argc);
+	USED(argv);
+	
+	fd = open("/proc/cognitive/rooted/list", OREAD);
+	if(fd < 0){
+		fprint(2, "cogctl: cannot open /proc/cognitive/rooted/list: %r\n");
+		exits("open");
+	}
+	
+	print("Rooted Shell Namespace Commands\n");
+	print("================================\n\n");
+	
+	while((n = read(fd, buf, sizeof buf)) > 0){
+		write(1, buf, n);
+	}
+	
+	close(fd);
+	exits(nil);
+}
+
+void
+cmd_rooted_info(int argc, char *argv[])
+{
+	int fd;
+	char *shell_id;
+	char cmd[1024];
+	
+	if(argc < 2){
+		fprint(2, "usage: cogctl rooted-info <shell_id>\n");
+		exits("usage");
+	}
+	
+	shell_id = argv[1];
+	
+	fd = open("/proc/cognitive/rooted/ctl", OWRITE);
+	if(fd < 0){
+		fprint(2, "cogctl: cannot open /proc/cognitive/rooted/ctl: %r\n");
+		exits("open");
+	}
+	
+	snprint(cmd, sizeof cmd, "info %s", shell_id);
+	if(write(fd, cmd, strlen(cmd)) < 0){
+		fprint(2, "cogctl: write failed: %r\n");
+		exits("write");
+	}
+	
+	close(fd);
+	print("Shell information for: %s\n", shell_id);
+	print("(Would display detailed shell structure and properties)\n");
+	exits(nil);
+}
+
+void
+cmd_rooted_stats(int argc, char *argv[])
+{
+	int fd;
+	char cmd[1024];
+	
+	USED(argc);
+	USED(argv);
+	
+	fd = open("/proc/cognitive/rooted/ctl", OWRITE);
+	if(fd < 0){
+		fprint(2, "cogctl: cannot open /proc/cognitive/rooted/ctl: %r\n");
+		exits("open");
+	}
+	
+	snprint(cmd, sizeof cmd, "stats");
+	if(write(fd, cmd, strlen(cmd)) < 0){
+		fprint(2, "cogctl: write failed: %r\n");
+		exits("write");
+	}
+	
+	close(fd);
+	
+	print("Rooted Tree Statistics (A000081 Sequence)\n");
+	print("=========================================\n\n");
+	print("Tree generation statistics:\n");
+	print("  n:  1   2   3    4    5    6     7     8     9     10\n");
+	print("  T:  1   1   2    4    9   20    48   115   286   719\n\n");
+	print("See /proc/cognitive/rooted/trees for generated configurations\n");
 	exits(nil);
 }

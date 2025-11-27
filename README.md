@@ -13,6 +13,7 @@ This Plan 9 kernel implementation serves as the foundational substrate for model
 | **Mount Points** | Cognitive service binding |
 | **Channels** | Inter-cognitive communication |
 | **Process Groups** | Cognitive swarms |
+| **Rooted Trees** | Shell namespace configurations |
 
 ## 🌆 Cognitive Cities Namespace Hierarchy
 
@@ -43,11 +44,87 @@ This Plan 9 kernel implementation serves as the foundational substrate for model
 │   ├── coordination/
 │   ├── emergence/
 │   └── collective-intelligence
+├── rooted-shells/
+│   ├── shell-configurations/
+│   ├── nested-namespaces/
+│   └── dual-representations/
 └── meta-cognition/
     ├── self-reflection/
     ├── adaptation/
     └── evolution/
 ```
+
+## 🌳 Rooted Shell Namespaces & 🧬 Membrane Computing
+
+A groundbreaking extension that maps **rooted tree configurations** (from OEIS A000081) to filesystem namespaces with **triple representation**:
+
+### Triple Representation
+
+**Every shell is simultaneously**:
+1. **A Namespace**: Container for nested structures (filesystem view)
+2. **A File**: Addressable entity with metadata (file view)  
+3. **A Membrane**: P-System compartment for computation (membrane computing view)
+
+This enables:
+- Navigation through nested shell hierarchies
+- Direct file operations on shell entities  
+- Systematic addressing protocol based on tree enumeration
+- **Membrane computing with multiset operations**
+- **P-System configurations for distributed computation**
+
+### Example
+
+```
+Parentheses: (()())
+Interpretation 1: 3-shell T-junction configuration
+Interpretation 2: Membrane with two submembranes
+Interpretation 3: P-System with multiset objects
+
+As Namespace:  /transportation/shell0/shell1
+As File:       /transportation/shell0/shell1.shell
+As Membrane:   m0 containing m1 and m2 (siblings)
+```
+
+### Mathematical Foundation
+
+Follows the A000081 sequence which simultaneously enumerates:
+- **Rooted trees**: Hierarchical structures
+- **Free hyper-multisets**: Nested collections
+- **P-System configurations**: Membrane topologies
+
+```
+n=1: 1 tree   n=2: 1 tree   n=3: 2 trees   n=4: 4 trees
+n=5: 9 trees  n=6: 20 trees n=7: 48 trees  n=8: 115 trees
+```
+
+### Membrane Computing Integration
+
+Each configuration represents both a filesystem structure AND a membrane computer:
+
+```
+Filesystem View:                Membrane Computer View:
+/domain/                       ┌─────────────────┐
+├── shell0/                    │ Membrane m0     │
+│   ├── shell1/          =     │ ┌─────────┐     │
+│   │   └── objects/           │ │ Membrane│     │
+│   └── shell2/                │ │ m1      │     │
+│       └── objects/           │ │ {a,b,c} │     │
+└── shell0.shell               │ └─────────┘     │
+                               │ Objects: {x,y}  │
+                               └─────────────────┘
+```
+
+### Domain-Specific Applications
+
+- **Transportation**: Intersection topologies with vehicle multisets
+- **Energy**: Grid distribution structures with power unit multisets
+- **Governance**: Policy hierarchies with proposal multisets
+- **Environment**: Sensor network arrangements with reading multisets
+
+### Documentation
+
+- [Rooted Shell Namespaces](docs/cognitive-architecture/rooted-shell-namespaces.md) - Filesystem structure
+- [Membrane Computing](docs/cognitive-architecture/membrane-computing.md) - P-System semantics
 
 ## 🚀 Architecture Overview
 

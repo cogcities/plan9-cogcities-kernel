@@ -30,6 +30,27 @@ cogctl adapt-namespace <domain> [auto|manual]
 cogctl stats
 ```
 
+### Rooted Shell Commands
+
+```bash
+# Create shell from parentheses notation
+cogctl rooted-create <domain> <parens>
+cogctl rooted-create transportation '(()())'
+
+# Enumerate all n-trees for domain
+cogctl rooted-enumerate <domain> <max_size>
+cogctl rooted-enumerate energy 5
+
+# List rooted shell commands
+cogctl rooted-list
+
+# Get shell information
+cogctl rooted-info <shell_id>
+
+# Show rooted tree statistics
+cogctl rooted-stats
+```
+
 ### cogmon - Monitoring Tool
 
 ```bash
@@ -60,6 +81,9 @@ governance-demo
 
 # Run full integration demo
 integration-demo
+
+# Run rooted shell namespace demo
+rooted-shell-demo
 ```
 
 ## Filesystem Interface
@@ -84,6 +108,11 @@ cat /proc/cognitive/metrics
 
 # See statistics
 cat /proc/cognitive/stats
+
+# Rooted shell interface
+cat /proc/cognitive/rooted/list
+cat /proc/cognitive/rooted/trees
+cat /proc/cognitive/rooted/shells
 ```
 
 ### Write Operations
@@ -97,6 +126,11 @@ echo 'bind-channel src dst bandwidth' > /proc/cognitive/ctl
 
 # Start swarm
 echo 'start-swarm id domain agents' > /proc/cognitive/ctl
+
+# Rooted shell operations
+echo 'create transportation (()())' > /proc/cognitive/rooted/ctl
+echo 'enumerate energy 5' > /proc/cognitive/rooted/ctl
+echo 'stats' > /proc/cognitive/rooted/ctl
 
 # Detect emergence
 echo 'detect-emergence domain threshold' > /proc/cognitive/ctl

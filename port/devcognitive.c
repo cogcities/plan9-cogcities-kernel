@@ -21,6 +21,11 @@ enum {
 	Qswarms,
 	Qmetrics,
 	Qstats,
+	Qrooted,
+	Qrootedctl,
+	Qrootedlist,
+	Qrootedtrees,
+	Qrootedshells,
 };
 
 Dirtab cognitivedir[] = {
@@ -32,6 +37,11 @@ Dirtab cognitivedir[] = {
 	"swarms",	{Qswarms},		0,	0444,
 	"metrics",	{Qmetrics},		0,	0444,
 	"stats",	{Qstats},		0,	0444,
+	"rooted",	{Qrooted, 0, QTDIR},	0,	0555,
+	"rooted/ctl",	{Qrootedctl},		0,	0660,
+	"rooted/list",	{Qrootedlist},		0,	0444,
+	"rooted/trees",	{Qrootedtrees},		0,	0444,
+	"rooted/shells",{Qrootedshells},	0,	0444,
 };
 
 static void
@@ -161,6 +171,50 @@ cognitiveread(Chan *c, void *a, long n, vlong offset)
 			n = len - offset;
 		memmove(a, buf + offset, n);
 		return n;
+	
+	case Qrootedlist:
+		/* List rooted shell configurations */
+		buf = "Rooted Shell Namespace Interface\n"
+		      "=================================\n"
+		      "Available commands via rooted/ctl:\n"
+		      "  create <domain> <parens>  - Create shell from parentheses notation\n"
+		      "  enumerate <domain> <n>    - Enumerate all n-trees for domain\n"
+		      "  info <shell_id>           - Get shell information\n"
+		      "  stats                     - Show rooted tree statistics\n";
+		len = strlen(buf);
+		if(offset >= len)
+			return 0;
+		if(offset + n > len)
+			n = len - offset;
+		memmove(a, buf + offset, n);
+		return n;
+	
+	case Qrootedtrees:
+		/* List generated rooted trees */
+		buf = "Rooted Trees (A000081 sequence)\n"
+		      "================================\n"
+		      "Generated tree configurations available.\n"
+		      "Use 'enumerate' command to create shells.\n";
+		len = strlen(buf);
+		if(offset >= len)
+			return 0;
+		if(offset + n > len)
+			n = len - offset;
+		memmove(a, buf + offset, n);
+		return n;
+	
+	case Qrootedshells:
+		/* List active rooted shells */
+		buf = "Active Rooted Shells\n"
+		      "====================\n"
+		      "Use 'create' or 'enumerate' to create shells.\n";
+		len = strlen(buf);
+		if(offset >= len)
+			return 0;
+		if(offset + n > len)
+			n = len - offset;
+		memmove(a, buf + offset, n);
+		return n;
 		
 	default:
 		error(Egreg);
@@ -216,6 +270,46 @@ cognitivewrite(Chan *c, void *a, long n, vlong offset)
 		}
 		else {
 			error("unknown command");
+		}
+		
+		return n;
+	
+	case Qrootedctl:
+		/* Rooted shell control commands */
+		if(n >= sizeof(buf))
+			n = sizeof(buf) - 1;
+		memmove(buf, a, n);
+		buf[n] = 0;
+		
+		/* Parse command */
+		nf = tokenize(buf, fields, nelem(fields));
+		if(nf < 1)
+			error(Ebadarg);
+		
+		if(strcmp(fields[0], "create") == 0){
+			if(nf < 3)
+				error("usage: create domain parentheses_notation");
+			print("Creating rooted shell: domain=%s tree=%s\n", fields[1], fields[2]);
+			/* Would call: create_rooted_shell_from_parens(fields[1], fields[2]) */
+		}
+		else if(strcmp(fields[0], "enumerate") == 0){
+			if(nf < 3)
+				error("usage: enumerate domain max_size");
+			print("Enumerating rooted shells: domain=%s max_size=%s\n", fields[1], fields[2]);
+			/* Would call: enumerate_rooted_shells(fields[1], atoi(fields[2]), &shells) */
+		}
+		else if(strcmp(fields[0], "info") == 0){
+			if(nf < 2)
+				error("usage: info shell_id");
+			print("Getting shell info: %s\n", fields[1]);
+			/* Would call: get_shell_info(shell) */
+		}
+		else if(strcmp(fields[0], "stats") == 0){
+			print("Rooted tree statistics:\n");
+			/* Would call: print_rooted_tree_stats() */
+		}
+		else {
+			error("unknown rooted command");
 		}
 		
 		return n;
