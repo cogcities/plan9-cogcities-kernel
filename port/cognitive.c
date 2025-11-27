@@ -974,7 +974,7 @@ parse_children_from_parens(char *parens, char ***children_out)
                 int child_len = i - child_start + 1;
                 children[child_count] = malloc(child_len + 1);
                 if (children[child_count] != nil) {
-                    memmove(children[child_count], p + child_start, child_len);
+                    memcpy(children[child_count], p + child_start, child_len);
                     children[child_count][child_len] = '\0';
                     child_count++;
                 }
