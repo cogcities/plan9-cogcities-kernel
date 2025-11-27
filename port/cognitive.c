@@ -28,6 +28,8 @@ typedef struct NeuralChannel NeuralChannel;
 typedef struct CognitiveSwarm CognitiveSwarm;
 typedef struct NeuralMessage NeuralMessage;
 typedef struct EmergentPattern EmergentPattern;
+typedef struct RootedShell RootedShell;
+typedef struct RootedTree RootedTree;
 
 struct NeuralMessage {
     ulong tag;                    // Message tag
@@ -93,6 +95,71 @@ struct EmergentPattern {
 };
 
 /*
+ * Rooted Shell Namespace Structures
+ * 
+ * Maps rooted tree configurations (nested shells) to Plan 9 namespaces.
+ * Each shell is both a namespace (containing other shells/files) and a file itself.
+ * 
+ * Key concept: Rooted trees from A000081 enumerate all possible nested shell
+ * configurations, which map to filesystem namespace hierarchies.
+ */
+
+// Binary tree representation (bit-encoded parentheses)
+typedef uvlong tree;
+
+struct RootedTree {
+    tree binary_rep;              // Binary encoding of tree structure
+    char *parens_notation;        // Parentheses notation: "(()())" etc
+    char *namespace_path;         // Corresponding namespace path
+    int node_count;               // Number of nodes (shells) in tree
+    int depth;                    // Maximum nesting depth
+    RootedTree **subtrees;        // Child subtrees
+    int subtree_count;            // Number of subtrees
+};
+
+struct RootedShell {
+    char *shell_id;               // Unique shell identifier
+    char *domain;                 // Associated cognitive domain
+    RootedTree *tree_structure;   // Underlying rooted tree structure
+    
+    // Dual representation: shell as namespace
+    CognitiveNamespace *as_namespace;  // Shell viewed as namespace
+    char *namespace_mount_point;       // Where namespace is mounted
+    
+    // Dual representation: shell as file
+    char *file_path;              // Shell viewed as file path
+    Chan *file_channel;           // File channel for shell access
+    
+    // Shell nesting relationships
+    RootedShell *parent_shell;    // Containing shell (nil if root)
+    RootedShell **child_shells;   // Nested shells
+    int child_count;              // Number of nested shells
+    
+    // Addressing protocol
+    char **address_path;          // Path components for addressing
+    int path_depth;               // Depth in namespace hierarchy
+    
+    time_t creation_time;         // When shell was created
+    Lock shell_lock;              // Shell synchronization
+};
+
+/*
+ * Rooted Tree Generation (A000081 sequence)
+ * 
+ * These arrays store generated rooted trees for efficient lookup.
+ */
+#define MAXN 15  // Maximum tree size we can handle efficiently
+
+static struct {
+    Lock;
+    tree *list;                   // All generated trees
+    int list_size;                // Current size
+    int list_capacity;            // Allocated capacity
+    ulong *offset;                // Offset[n] = index where n-trees start
+    int max_n;                    // Maximum n we've generated
+} rooted_trees = { .list_size = 0, .max_n = 0 };
+
+/*
  * Neural Message Types (9P Extensions)
  */
 enum {
@@ -134,6 +201,8 @@ static struct {
     int swarm_count;
     EmergentPattern **patterns;
     int pattern_count;
+    RootedShell **shells;
+    int shell_count;
 } cognitive_state = { .namespace_count = 0 };
 
 /*
@@ -590,6 +659,324 @@ create_interdomain_channels(CognitiveNamespace *transportation,
     bind_neural_channel_to_namespace(environment, gov_env);
     
     print("Inter-domain neural transport channels established\n");
+}
+
+/*
+ * Rooted Tree Generation Functions (A000081)
+ * 
+ * These functions implement the recursive assembly algorithm for generating
+ * all rooted trees with n nodes, using binary encoding for compact storage.
+ */
+
+static void
+init_rooted_trees(void)
+{
+    lock(&rooted_trees);
+    
+    if (rooted_trees.list == nil) {
+        rooted_trees.list_capacity = 10000;  // Start with capacity for ~10k trees
+        rooted_trees.list = malloc(rooted_trees.list_capacity * sizeof(tree));
+        rooted_trees.offset = malloc((MAXN + 2) * sizeof(ulong));
+        
+        // Initialize: offset[0] = 0, tree size 0 has no trees
+        rooted_trees.offset[0] = 0;
+        rooted_trees.list_size = 0;
+        rooted_trees.max_n = 0;
+    }
+    
+    unlock(&rooted_trees);
+}
+
+static void
+append_tree(tree t)
+{
+    lock(&rooted_trees);
+    
+    // Expand list if needed
+    if (rooted_trees.list_size >= rooted_trees.list_capacity) {
+        int new_capacity = rooted_trees.list_capacity * 2;
+        tree *new_list = malloc(new_capacity * sizeof(tree));
+        memmove(new_list, rooted_trees.list, rooted_trees.list_size * sizeof(tree));
+        free(rooted_trees.list);
+        rooted_trees.list = new_list;
+        rooted_trees.list_capacity = new_capacity;
+    }
+    
+    // Add tree with sentinel bit: stored as (1 | t<<1)
+    rooted_trees.list[rooted_trees.list_size++] = 1ULL | (t << 1);
+    
+    unlock(&rooted_trees);
+}
+
+static void
+assemble_trees(uint n, tree t, uint sl, uint pos, uint rem)
+{
+    if (rem == 0) {
+        append_tree(t);
+        return;
+    }
+    
+    // Try adding a subtree of size sl
+    if (sl > rem) {
+        sl = rem;
+        pos = rooted_trees.offset[sl];
+    } else if (pos >= rooted_trees.offset[sl + 1]) {
+        sl--;
+        if (sl == 0)
+            return;
+        pos = rooted_trees.offset[sl];
+    }
+    
+    // Recurse: add current subtree or try next
+    assemble_trees(n, (t << (2 * sl)) | rooted_trees.list[pos], sl, pos, rem - sl);
+    assemble_trees(n, t, sl, pos + 1, rem);
+}
+
+static void
+generate_trees(uint n)
+{
+    lock(&rooted_trees);
+    
+    if (n <= rooted_trees.max_n) {
+        unlock(&rooted_trees);
+        return;  // Already generated
+    }
+    
+    // Generate all trees up to size n
+    for (uint i = rooted_trees.max_n + 1; i <= n && i <= MAXN; i++) {
+        rooted_trees.offset[i] = rooted_trees.list_size;
+        
+        if (i == 1) {
+            // Base case: single node is just ()
+            append_tree(0);  // Empty tree inside parentheses
+        } else {
+            // Recursive case: assemble from smaller trees
+            assemble_trees(i, 0, i - 1, rooted_trees.offset[i - 1], i - 1);
+        }
+    }
+    
+    rooted_trees.offset[n + 1] = rooted_trees.list_size;
+    rooted_trees.max_n = n;
+    
+    unlock(&rooted_trees);
+}
+
+/*
+ * Tree to String Conversion
+ */
+
+static void
+tree_to_parens_recursive(tree t, uint len, char *buf, int *pos)
+{
+    for (uint i = 0; i < len; i++) {
+        if (t & 1) {
+            buf[(*pos)++] = '(';
+        } else {
+            buf[(*pos)++] = ')';
+        }
+        t >>= 1;
+    }
+}
+
+static char*
+tree_to_parens(tree t, uint len)
+{
+    char *buf = malloc((2 * len + 1) * sizeof(char));
+    int pos = 0;
+    tree_to_parens_recursive(t, 2 * len, buf, &pos);
+    buf[pos] = '\0';
+    return buf;
+}
+
+/*
+ * Rooted Tree Structure Functions
+ */
+
+static RootedTree*
+create_rooted_tree(tree binary_rep, uint node_count)
+{
+    RootedTree *rt;
+    
+    rt = malloc(sizeof(RootedTree));
+    if (rt == nil)
+        return nil;
+    
+    rt->binary_rep = binary_rep;
+    rt->node_count = node_count;
+    rt->parens_notation = tree_to_parens(binary_rep, node_count);
+    rt->namespace_path = nil;  // Set later
+    rt->depth = 0;  // Calculate later
+    rt->subtrees = nil;
+    rt->subtree_count = 0;
+    
+    return rt;
+}
+
+static char*
+tree_to_namespace_path(char *parens, char *base_domain)
+{
+    // Convert parentheses notation to namespace path
+    // E.g., "(()())" becomes "/domain/shell0/shell1"
+    
+    char *path = malloc(1024);
+    int pos = 0;
+    int depth = 0;
+    int shell_num = 0;
+    
+    pos += snprint(path + pos, 1024 - pos, "/%s", base_domain);
+    
+    for (int i = 0; parens[i] != '\0'; i++) {
+        if (parens[i] == '(') {
+            pos += snprint(path + pos, 1024 - pos, "/shell%d", shell_num++);
+            depth++;
+        } else {
+            depth--;
+        }
+    }
+    
+    return path;
+}
+
+/*
+ * Rooted Shell Functions
+ */
+
+RootedShell*
+create_rooted_shell(char *domain, RootedTree *tree_structure)
+{
+    RootedShell *shell;
+    
+    shell = malloc(sizeof(RootedShell));
+    if (shell == nil)
+        return nil;
+    
+    shell->shell_id = smprint("shell-%s-%lud", domain, time(NULL));
+    shell->domain = strdup(domain);
+    shell->tree_structure = tree_structure;
+    
+    // Create namespace representation
+    char *ns_path = tree_to_namespace_path(tree_structure->parens_notation, domain);
+    shell->as_namespace = create_cognitive_namespace(shell->shell_id, ns_path);
+    shell->namespace_mount_point = ns_path;
+    
+    // Create file representation
+    shell->file_path = smprint("%s.shell", ns_path);
+    shell->file_channel = nil;  // Created on first access
+    
+    // Initialize relationships
+    shell->parent_shell = nil;
+    shell->child_shells = nil;
+    shell->child_count = 0;
+    
+    // Initialize addressing
+    shell->address_path = nil;
+    shell->path_depth = 0;
+    
+    shell->creation_time = time(NULL);
+    
+    // Initialize lock
+    lock(&shell->shell_lock);
+    unlock(&shell->shell_lock);
+    
+    // Add to global state
+    lock(&cognitive_state);
+    // Expand shells array if needed
+    cognitive_state.shells = realloc(cognitive_state.shells, 
+                                     (cognitive_state.shell_count + 1) * sizeof(RootedShell*));
+    cognitive_state.shells[cognitive_state.shell_count++] = shell;
+    unlock(&cognitive_state);
+    
+    return shell;
+}
+
+RootedShell*
+create_rooted_shell_from_parens(char *domain, char *parens_notation)
+{
+    // Count nodes from parentheses
+    int node_count = 0;
+    for (int i = 0; parens_notation[i] != '\0'; i++) {
+        if (parens_notation[i] == '(')
+            node_count++;
+    }
+    
+    // Create tree structure
+    RootedTree *tree = create_rooted_tree(0, node_count);  // Binary rep can be calculated
+    tree->parens_notation = strdup(parens_notation);
+    
+    return create_rooted_shell(domain, tree);
+}
+
+int
+enumerate_rooted_shells(char *domain, int max_size, RootedShell ***shells_out)
+{
+    // Initialize tree generation if needed
+    if (rooted_trees.list == nil)
+        init_rooted_trees();
+    
+    // Generate all trees up to max_size
+    if (max_size > MAXN)
+        max_size = MAXN;
+    generate_trees(max_size);
+    
+    // Count total trees
+    int total_count = rooted_trees.offset[max_size + 1] - rooted_trees.offset[1];
+    
+    // Allocate shell array
+    RootedShell **shells = malloc(total_count * sizeof(RootedShell*));
+    int shell_idx = 0;
+    
+    // Create shells for each tree size
+    for (int n = 1; n <= max_size; n++) {
+        ulong start = rooted_trees.offset[n];
+        ulong end = rooted_trees.offset[n + 1];
+        
+        for (ulong i = start; i < end; i++) {
+            RootedTree *tree = create_rooted_tree(rooted_trees.list[i], n);
+            shells[shell_idx++] = create_rooted_shell(domain, tree);
+        }
+    }
+    
+    *shells_out = shells;
+    return total_count;
+}
+
+char*
+get_shell_info(RootedShell *shell)
+{
+    char *info = malloc(2048);
+    
+    snprint(info, 2048,
+            "Shell ID: %s\n"
+            "Domain: %s\n"
+            "Tree Structure: %s\n"
+            "Node Count: %d\n"
+            "Namespace: %s\n"
+            "File Path: %s\n"
+            "Creation: %lud\n",
+            shell->shell_id,
+            shell->domain,
+            shell->tree_structure->parens_notation,
+            shell->tree_structure->node_count,
+            shell->namespace_mount_point,
+            shell->file_path,
+            shell->creation_time);
+    
+    return info;
+}
+
+void
+print_rooted_tree_stats(void)
+{
+    print("Rooted Tree Statistics:\n");
+    print("  Max tree size generated: %d\n", rooted_trees.max_n);
+    print("  Total trees stored: %d\n", rooted_trees.list_size);
+    
+    for (int n = 1; n <= rooted_trees.max_n && n <= MAXN; n++) {
+        int count = rooted_trees.offset[n + 1] - rooted_trees.offset[n];
+        print("  %d-trees: %d\n", n, count);
+    }
+    
+    print("  Active shells: %d\n", cognitive_state.shell_count);
 }
 
 /*
