@@ -1,35 +1,64 @@
-# Rooted Shell Namespaces Implementation Summary
+# Rooted Shell Namespaces & Membrane Computing Implementation Summary
 
 ## Overview
 
-This implementation extends the Plan 9 Cognitive Cities Kernel with **rooted shell namespaces**, a groundbreaking feature that maps mathematical rooted tree configurations to filesystem namespaces. This realizes the vision from the problem statement:
+This implementation extends the Plan 9 Cognitive Cities Kernel with **rooted shell namespaces**, a groundbreaking feature that maps mathematical rooted tree configurations to filesystem namespaces with **membrane computing semantics**. This realizes the vision from the problem statement:
 
 > "Every shell is also a file... if we define the filesystem according to nested shell configurations using P9 namespaces to address files, then we have a filesystem structured like the rooted trees."
 
+**Additionally:** OEIS A000081 also enumerates **free hyper-multisets as P-System configurations**, so the filesystem provides the requisite architecture to treat it like a **membrane computer** directly - **each shell is also a membrane!**
+
 ## Key Innovation
 
-### Dual Representation
+### Triple Representation
 
-Every shell has a **dual representation**:
+Every shell has a **triple representation**:
 
 1. **Shell as Namespace**: A container for other shells and files (directory-like)
 2. **Shell as File**: An addressable entity with metadata (file-like)
+3. **Shell as Membrane**: A P-System compartment for computation (membrane computing)
 
-This dual nature enables:
+This triple nature enables:
 - Navigation through nested hierarchies using standard Plan 9 commands (`cd`, `ls`)
 - Direct file operations on shell entities (`cat`, `read`)
 - Unified addressing protocol for both representations
+- **Membrane computing with multiset operations**
+- **P-System evolution with rewriting rules**
+- **Distributed computation via membrane topology**
 
 ### Mathematical Foundation
 
-The implementation is grounded in the **OEIS A000081 sequence** for rooted tree enumeration:
+The implementation is grounded in the **OEIS A000081 sequence** which simultaneously enumerates:
+
+1. **Rooted trees**: Hierarchical structures
+2. **Free hyper-multisets**: Nested collections
+3. **P-System configurations**: Membrane topologies
 
 ```
 n:  1   2   3    4    5    6     7     8     9     10
 T:  1   1   2    4    9   20    48   115   286   719
 ```
 
-Each value T(n) represents the number of distinct rooted trees (nested shell configurations) with n nodes.
+Each value T(n) represents the number of distinct configurations with n nodes.
+
+### Membrane Computing Connection
+
+Each rooted tree configuration is isomorphic to a P-System membrane structure:
+
+```
+Parentheses: (()())
+
+As Rooted Tree:           As Membrane System:
+     root                 ┌─────────────┐
+    /    \                │ Membrane m0 │
+  node1  node2            │┌──┐   ┌──┐ │
+                          ││m1│   │m2│ │
+                          │└──┘   └──┘ │
+                          └─────────────┘
+
+Filesystem: /m0/m1, /m0/m2
+P-System: Membrane m0 with submembranes m1, m2
+```
 
 ## Implementation Components
 
@@ -41,7 +70,7 @@ struct RootedTree {
     tree binary_rep;              // Binary encoding of tree structure
     char *parens_notation;        // Parentheses notation: "(()())"
     char *namespace_path;         // Corresponding namespace path
-    int node_count;               // Number of shells
+    int node_count;               // Number of shells/membranes
     int depth;                    // Maximum nesting depth
     RootedTree **subtrees;        // Child subtrees
     int subtree_count;            // Number of subtrees
