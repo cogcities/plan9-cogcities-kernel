@@ -13,6 +13,7 @@ This Plan 9 kernel implementation serves as the foundational substrate for model
 | **Mount Points** | Cognitive service binding |
 | **Channels** | Inter-cognitive communication |
 | **Process Groups** | Cognitive swarms |
+| **Rooted Trees** | Shell namespace configurations |
 
 ## 🌆 Cognitive Cities Namespace Hierarchy
 
@@ -43,11 +44,52 @@ This Plan 9 kernel implementation serves as the foundational substrate for model
 │   ├── coordination/
 │   ├── emergence/
 │   └── collective-intelligence
+├── rooted-shells/
+│   ├── shell-configurations/
+│   ├── nested-namespaces/
+│   └── dual-representations/
 └── meta-cognition/
     ├── self-reflection/
     ├── adaptation/
     └── evolution/
 ```
+
+## 🌳 Rooted Shell Namespaces
+
+A groundbreaking extension that maps **rooted tree configurations** (from OEIS A000081) to filesystem namespaces:
+
+### Key Concept
+
+**Every shell is both a namespace AND a file**, enabling:
+- Navigation through nested shell hierarchies
+- Direct file operations on shell entities  
+- Systematic addressing protocol based on tree enumeration
+
+### Example
+
+```
+Parentheses: (()())
+Interpretation: 3-shell T-junction configuration
+
+As Namespace:  /transportation/shell0/shell1
+As File:       /transportation/shell0/shell1.shell
+```
+
+### Mathematical Foundation
+
+Follows the A000081 sequence for rooted tree enumeration:
+```
+n=1: 1 tree   n=2: 1 tree   n=3: 2 trees   n=4: 4 trees
+n=5: 9 trees  n=6: 20 trees n=7: 48 trees  n=8: 115 trees
+```
+
+Each configuration represents a unique nested structure that can model:
+- **Transportation**: Intersection topologies
+- **Energy**: Grid distribution structures
+- **Governance**: Policy hierarchies
+- **Environment**: Sensor network arrangements
+
+See [rooted-shell-namespaces.md](docs/cognitive-architecture/rooted-shell-namespaces.md) for complete documentation.
 
 ## 🚀 Architecture Overview
 
