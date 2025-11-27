@@ -180,7 +180,12 @@ cognitiveread(Chan *c, void *a, long n, vlong offset)
 		      "  create <domain> <parens>  - Create shell from parentheses notation\n"
 		      "  enumerate <domain> <n>    - Enumerate all n-trees for domain\n"
 		      "  info <shell_id>           - Get shell information\n"
-		      "  stats                     - Show rooted tree statistics\n";
+		      "  stats                     - Show rooted tree statistics\n"
+		      "  matula <n>                - Convert Matula number to tree\n"
+		      "\n"
+		      "Matula Numbers:\n"
+		      "  Each tree has a unique Matula number via prime factorization.\n"
+		      "  Examples: () = 1, (()) = 2, (()()) = 4, (()())) = 3\n";
 		len = strlen(buf);
 		if(offset >= len)
 			return 0;
@@ -193,8 +198,16 @@ cognitiveread(Chan *c, void *a, long n, vlong offset)
 		/* List generated rooted trees */
 		buf = "Rooted Trees (A000081 sequence)\n"
 		      "================================\n"
-		      "Generated tree configurations available.\n"
-		      "Use 'enumerate' command to create shells.\n";
+		      "Generated tree configurations with Matula numbers.\n"
+		      "\n"
+		      "Matula encoding: Each tree maps to a unique integer.\n"
+		      "  ()      → Matula 1  (single node)\n"
+		      "  (())    → Matula 2  (p(1) = 2)\n"
+		      "  (()())  → Matula 4  (2² = two children)\n"
+		      "  ((()))  → Matula 3  (p(2) = 3)\n"
+		      "\n"
+		      "Use 'enumerate' command to generate and view trees.\n"
+		      "See docs/cognitive-architecture/matula-numbers.md for details.\n";
 		len = strlen(buf);
 		if(offset >= len)
 			return 0;
@@ -207,7 +220,14 @@ cognitiveread(Chan *c, void *a, long n, vlong offset)
 		/* List active rooted shells */
 		buf = "Active Rooted Shells\n"
 		      "====================\n"
-		      "Use 'create' or 'enumerate' to create shells.\n";
+		      "Shells represent tree configurations in cognitive domains.\n"
+		      "Each shell has:\n"
+		      "  - A namespace path (for navigation)\n"
+		      "  - A file path (for access)\n"
+		      "  - A Matula number (for indexing)\n"
+		      "\n"
+		      "Use 'create' or 'enumerate' to create shells.\n"
+		      "Use 'info <shell_id>' to view shell details including Matula number.\n";
 		len = strlen(buf);
 		if(offset >= len)
 			return 0;

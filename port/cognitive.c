@@ -115,6 +115,7 @@ struct RootedTree {
     int depth;                    // Maximum nesting depth
     RootedTree **subtrees;        // Child subtrees
     int subtree_count;            // Number of subtrees
+    uvlong matula_number;         // Matula number encoding (via prime factorization)
 };
 
 struct RootedShell {
@@ -828,6 +829,10 @@ create_rooted_tree(tree binary_rep, uint node_count)
     rt->depth = 0;  // Calculate later
     rt->subtrees = nil;
     rt->subtree_count = 0;
+    rt->matula_number = 0;  // Calculate later
+    
+    // Compute Matula number
+    compute_matula_number(rt);
     
     return rt;
 }
@@ -858,6 +863,234 @@ tree_to_namespace_path(char *parens, char *base_domain)
     }
     
     return path;
+}
+
+/*
+ * Matula Number Functions
+ * 
+ * Matula numbers provide a bijection between rooted trees and natural numbers
+ * using prime factorization. This encoding allows trees to be uniquely represented
+ * as integers.
+ * 
+ * The mapping works as follows:
+ * - The empty tree (single node) maps to 1
+ * - A tree with children c1, c2, ..., cn maps to p(M(c1)) * p(M(c2)) * ... * p(M(cn))
+ *   where p(k) is the k-th prime number and M(t) is the Matula number of tree t
+ * 
+ * Examples from A000081:
+ * []              → 1 → becomes p(1) = 2
+ * [[]]            → 2 → becomes p(2) = 3
+ * [] []           → 1*1 → becomes 2^2 = 4
+ * [[[]]]          → 3 → becomes p(3) = 5
+ * [[] []]         → 2*1 → becomes 3*2 = 6
+ * [[],[]]         → 4 → becomes p(4) = 7
+ * [] [] []        → 1*1*1 → becomes 2^3 = 8
+ */
+
+// Prime number table (first 100 primes, enough for most practical tree sizes)
+static uvlong primes[] = {
+    2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71,
+    73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151,
+    157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233,
+    239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317,
+    331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419,
+    421, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509,
+    521, 523, 541, 547
+};
+#define NPRIMES (sizeof(primes)/sizeof(primes[0]))
+
+// Get the n-th prime number (1-indexed: prime(1) = 2, prime(2) = 3, etc.)
+static uvlong
+nth_prime(int n)
+{
+    if (n < 1 || n > NPRIMES)
+        return 0;  // Out of range
+    return primes[n - 1];
+}
+
+// Find which prime a number is (inverse of nth_prime)
+// Returns n such that primes[n-1] == p, or 0 if p is not prime
+static int
+prime_index(uvlong p)
+{
+    for (int i = 0; i < NPRIMES; i++) {
+        if (primes[i] == p)
+            return i + 1;
+        if (primes[i] > p)
+            break;
+    }
+    return 0;
+}
+
+// Simple prime factorization for Matula number decoding
+// Returns the exponents of each prime factor
+static void
+factorize(uvlong n, int *exponents, int max_primes)
+{
+    for (int i = 0; i < max_primes; i++)
+        exponents[i] = 0;
+    
+    for (int i = 0; i < NPRIMES && i < max_primes && n > 1; i++) {
+        while (n % primes[i] == 0) {
+            exponents[i]++;
+            n /= primes[i];
+        }
+    }
+}
+
+// Parse parentheses notation to extract direct children as subtrees
+// Returns the number of direct children found
+static int
+parse_children_from_parens(char *parens, char ***children_out)
+{
+    if (parens == nil || parens[0] == '\0')
+        return 0;
+    
+    // Skip outer parentheses if present
+    char *p = parens;
+    if (*p == '(')
+        p++;
+    
+    // Count and extract children
+    int child_count = 0;
+    int depth = 0;
+    int child_start = -1;
+    
+    // Allocate space for children (max = length of string)
+    int max_children = strlen(parens) / 2;
+    char **children = malloc(max_children * sizeof(char*));
+    if (children == nil)
+        return 0;
+    
+    for (int i = 0; p[i] != '\0'; i++) {
+        if (p[i] == '(') {
+            if (depth == 0)
+                child_start = i;
+            depth++;
+        } else if (p[i] == ')') {
+            depth--;
+            if (depth == 0 && child_start >= 0) {
+                // Found a complete child
+                int child_len = i - child_start + 1;
+                children[child_count] = malloc(child_len + 1);
+                if (children[child_count] != nil) {
+                    memcpy(children[child_count], p + child_start, child_len);
+                    children[child_count][child_len] = '\0';
+                    child_count++;
+                }
+                child_start = -1;
+            }
+        }
+    }
+    
+    *children_out = children;
+    return child_count;
+}
+
+// Compute Matula number from parentheses notation
+// This is the main encoding function
+static uvlong
+parens_to_matula(char *parens)
+{
+    if (parens == nil || parens[0] == '\0')
+        return 1;  // Empty tree = 1
+    
+    // Single node: "()" or "( )"
+    if (strcmp(parens, "()") == 0)
+        return 1;
+    
+    // Parse children
+    char **children = nil;
+    int child_count = parse_children_from_parens(parens, &children);
+    
+    if (child_count == 0) {
+        // No children found, treat as single node
+        return 1;
+    }
+    
+    // Compute Matula numbers of children recursively
+    uvlong result = 1;
+    for (int i = 0; i < child_count; i++) {
+        uvlong child_matula = parens_to_matula(children[i]);
+        uvlong prime = nth_prime(child_matula);
+        
+        if (prime == 0) {
+            // Overflow or error
+            result = 0;
+            break;
+        }
+        
+        result *= prime;
+        if (result == 0) {
+            // Overflow
+            break;
+        }
+    }
+    
+    // Free children
+    for (int i = 0; i < child_count; i++)
+        free(children[i]);
+    free(children);
+    
+    return result;
+}
+
+// Convert Matula number to parentheses notation
+// This is the main decoding function
+static char*
+matula_to_parens(uvlong matula)
+{
+    if (matula == 1) {
+        // Single node
+        char *result = malloc(3);
+        if (result != nil)
+            strcpy(result, "()");
+        return result;
+    }
+    
+    // Factorize the Matula number
+    int exponents[NPRIMES];
+    factorize(matula, exponents, NPRIMES);
+    
+    // Build parentheses from factors
+    char *result = malloc(4096);  // Should be enough for reasonable trees
+    if (result == nil)
+        return nil;
+    
+    result[0] = '(';
+    int pos = 1;
+    
+    // For each prime factor, add corresponding children
+    for (int i = 0; i < NPRIMES && pos < 4090; i++) {
+        for (int j = 0; j < exponents[i] && pos < 4090; j++) {
+            // Prime primes[i] appears exponents[i] times
+            // This means we have exponents[i] children with Matula number (i+1)
+            char *child = matula_to_parens(i + 1);
+            if (child != nil) {
+                int child_len = strlen(child);
+                if (pos + child_len < 4090) {
+                    strcpy(result + pos, child);
+                    pos += child_len;
+                }
+                free(child);
+            }
+        }
+    }
+    
+    result[pos++] = ')';
+    result[pos] = '\0';
+    
+    return result;
+}
+
+// Compute Matula number for a rooted tree structure
+static void
+compute_matula_number(RootedTree *rt)
+{
+    if (rt == nil)
+        return;
+    
+    rt->matula_number = parens_to_matula(rt->parens_notation);
 }
 
 /*
@@ -986,6 +1219,7 @@ get_shell_info(RootedShell *shell)
             "Shell ID: %s\n"
             "Domain: %s\n"
             "Tree Structure: %s\n"
+            "Matula Number: %llud\n"
             "Node Count: %d\n"
             "Namespace: %s\n"
             "File Path: %s\n"
@@ -993,6 +1227,7 @@ get_shell_info(RootedShell *shell)
             shell->shell_id,
             shell->domain,
             shell->tree_structure->parens_notation,
+            shell->tree_structure->matula_number,
             shell->tree_structure->node_count,
             shell->namespace_mount_point,
             shell->file_path,
@@ -1014,6 +1249,55 @@ print_rooted_tree_stats(void)
     }
     
     print("  Active shells: %d\n", cognitive_state.shell_count);
+}
+
+/*
+ * List trees with their Matula numbers
+ * Returns a formatted string showing tree structures and encodings
+ */
+char*
+list_trees_with_matula(int max_size)
+{
+    if (rooted_trees.list == nil)
+        init_rooted_trees();
+    
+    if (max_size > MAXN)
+        max_size = MAXN;
+    
+    generate_trees(max_size);
+    
+    // Allocate buffer for output
+    char *output = malloc(8192);
+    if (output == nil)
+        return nil;
+    
+    int pos = 0;
+    pos += snprint(output + pos, 8192 - pos, 
+                   "Rooted Trees with Matula Numbers\n");
+    pos += snprint(output + pos, 8192 - pos, 
+                   "================================\n\n");
+    pos += snprint(output + pos, 8192 - pos,
+                   "Size  Tree              Matula  Factorization\n");
+    pos += snprint(output + pos, 8192 - pos,
+                   "----  ---------------   ------  -------------\n");
+    
+    for (int n = 1; n <= max_size && n <= MAXN; n++) {
+        ulong start = rooted_trees.offset[n];
+        ulong end = rooted_trees.offset[n + 1];
+        
+        for (ulong i = start; i < end && pos < 8000; i++) {
+            RootedTree *tree = create_rooted_tree(rooted_trees.list[i], n);
+            if (tree != nil) {
+                pos += snprint(output + pos, 8192 - pos,
+                              " %2d   %-15s  %6llud\n",
+                              n, tree->parens_notation, tree->matula_number);
+                free(tree->parens_notation);
+                free(tree);
+            }
+        }
+    }
+    
+    return output;
 }
 
 /*
