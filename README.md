@@ -132,8 +132,13 @@ Filesystem View:                Membrane Computer View:
 
 ### Documentation
 
+**Start here**: [Membrane Computing Overview](docs/cognitive-architecture/MEMBRANE_COMPUTING_OVERVIEW.md) - Complete guide connecting all concepts
+
+**Detailed topics**:
 - [Rooted Shell Namespaces](docs/cognitive-architecture/rooted-shell-namespaces.md) - Filesystem structure
-- [Membrane Computing](docs/cognitive-architecture/membrane-computing.md) - P-System semantics
+- [Rooted Trees: Enumeration and Generation](docs/cognitive-architecture/rooted-trees-enumeration.md) - Tree enumeration algorithms
+- [Membrane Computing](docs/cognitive-architecture/membrane-computing.md) - P-System semantics and implementation
+- [Membrane Complexity Theory](docs/cognitive-architecture/membrane-complexity-theory.md) - Rigorous analysis of P vs NP collapse
 - [Matula Numbers](docs/cognitive-architecture/matula-numbers.md) - Integer encoding via prime factorization
 
 ## 🚀 Architecture Overview
@@ -356,7 +361,13 @@ See [GETTING_STARTED.md](GETTING_STARTED.md) for a comprehensive guide.
    ./matula-demo
    ```
 
-3. **Explore cognitive domains:**
+3. **Understand P vs NP complexity collapse:**
+   ```bash
+   cd tools/demos
+   ./parallel-complexity-demo 10 30
+   ```
+
+4. **Explore cognitive domains:**
    ```bash
    # List domains
    cogctl domains
@@ -386,6 +397,7 @@ See [GETTING_STARTED.md](GETTING_STARTED.md) for a comprehensive guide.
 - **cogmon**: Real-time monitoring tool for observing system behavior
 - **traffic-demo**: Demonstration of traffic optimization with cross-domain coordination
 - **matula-demo**: Interactive demonstration of Matula number encoding for rooted trees
+- **parallel-complexity-demo**: Shows P vs NP collapse in membrane computing systems
 
 See [tools/README.md](tools/README.md) for detailed tool documentation.
 
