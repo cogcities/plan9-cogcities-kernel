@@ -102,3 +102,41 @@ Failed to store memory with error: Resource not found
 
 The memory storage didn't work, but that's okay. Let me create a final summary for the user
 
+---
+
+Excellent! Let me store some important facts about this implementation for future reference:
+
+Call to store_memory
+Input
+{
+  "subject": "Echo State Networks",
+  "fact": "Echo State Networks serve as the universal bridge unifying 8 cognitive frameworks: Dyck grammar, rooted trees, Matula numbers, membrane systems, hypergraphs, multiplicative RNNs, statistical physics, and quantum-like dynamics",
+  "citations": "port/cognitive.c:1357-2050, docs/cognitive-architecture/esn-framework-bridge.md, ESN_IMPLEMENTATION.md, Problem statement from user about ESN structure",
+  "reason": "This is a fundamental architectural insight that connects all theoretical frameworks in the system. Future work on any of these frameworks should reference the ESN as the common implementation bridge. This will be essential for maintaining consistency across different cognitive modules and understanding how they interoperate.",
+  "category": "general"
+}
+Failed to store memory with error: Resource not found
+
+Call to store_memory
+Input
+{
+  "category": "general",
+  "citations": "port/cognitive.c lines 1690-1725, esn_state_to_matula() function, ESN_IMPLEMENTATION.md",
+  "fact": "ESN reservoir state can be encoded as single Matula number: State = ∏ p_i^e_i where p_i is i-th prime and e_i is quantized activation",
+  "reason": "This encoding enables O(1) space storage and comparison of reservoir states, which is crucial for efficient state management in large-scale cognitive systems. Future optimization work should leverage this representation for database indexing and structural queries.",
+  "subject": "Matula encoding"
+}
+Failed to store memory with error: Resource not found
+
+Call to store_memory
+Input
+{
+  "category": "general",
+  "citations": "Problem statement discussion of multiplicity, membrane-complexity-theory.md, ESN implementation",
+  "fact": "In Matula encoding, exponents represent spatial multiplicity (parallel copies) not temporal iteration (sequential steps)",
+  "reason": "This is a critical distinction for understanding the parallelism model. When implementing future cognitive services, developers must remember that 2^3 = 8 means three parallel copies of structure \"2\", not three sequential iterations. This affects how we design concurrent execution and resource allocation strategies.",
+  "subject": "parallel execution"
+}
+Failed to store memory with error: Resource not found
+
+Let me create a final comprehensive summary for the user
